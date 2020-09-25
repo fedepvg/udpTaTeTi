@@ -29,6 +29,7 @@ struct User
 	char alias[255];
 	class TaTeTi* currentRoom;
 	Cell cellType;
+	bool restart = false;
 };
 
 
@@ -37,7 +38,7 @@ class TaTeTi
 private:
 	bool gameEnded = false;
 	Gamestate currentGamestate;
-	int turnsLeft = 8;
+	int turnsLeft = 9;
 
 	User* firstPlayer = nullptr;
 	User* secondPlayer = nullptr;
@@ -51,6 +52,8 @@ private:
 public:
 	TaTeTi();
 
+	void ResetGrid();
+	void ResetPlayer(User* &thisPlayer);
 	bool CheckAll(Gamestate gamestate);
 	bool CheckInput(int input, Gamestate gamestate);
 	char CellToChar(Cell input);
@@ -61,5 +64,6 @@ public:
 	void SetupPlayers();
 	User* GetCurrentTurnPlayer();
 	User* GetNextTurnPlayer();
+	User* GetOtherPlayer(User* &thisPlayer);
 	string GetCurrentGameBoard();
 };

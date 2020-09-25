@@ -11,11 +11,13 @@
 
 #define NEW_USER '0'
 #define SET_ALIAS '1'
-#define MAKE_MOVE '2'
-#define OTHERS_TURN '3'
-#define MY_TURN '4'
-#define BAD_MOVE '5'
-#define GAME_ENDED '6'
+#define MATCH_START '2'
+#define MAKE_MOVE '3'
+#define OTHERS_TURN '4'
+#define MY_TURN '5'
+#define BAD_MOVE '6'
+#define GAME_ENDED '7'
+#define NEW_GAME '8'
 
 using namespace std;
 
@@ -123,13 +125,14 @@ void Server::RunServer()
 								roomAvailable = true;
 
 								string msg = "Iniciando partida contra ";
+								inLobbyMsg.cmd = MATCH_START;
 								strcpy_s(inLobbyMsg.data, msg.c_str());
 								strcat_s(inLobbyMsg.data, roomVector[j]->GetCurrentTurnPlayer()->alias);
-								sendto(listening, inLobbyMsg.data, sizeof(inLobbyMsg.data), 0, (sockaddr*)&roomVector[j]->GetNextTurnPlayer()->id, sizeof(users[i]->id));
+								sendto(listening, (char*)&inLobbyMsg, sizeof(Message), 0, (sockaddr*)&roomVector[j]->GetNextTurnPlayer()->id, sizeof(users[i]->id));
 
 								strcpy_s(inLobbyMsg.data, msg.c_str());
 								strcat_s(inLobbyMsg.data, roomVector[j]->GetNextTurnPlayer()->alias);
-								sendto(listening, inLobbyMsg.data, sizeof(inLobbyMsg.data), 0, (sockaddr*)& roomVector[j]->GetCurrentTurnPlayer()->id, sizeof(users[i]->id));
+								sendto(listening, (char*)&inLobbyMsg, sizeof(Message), 0, (sockaddr*)& roomVector[j]->GetCurrentTurnPlayer()->id, sizeof(users[i]->id));
 
 
 								Message matchStartMsg;
@@ -215,7 +218,7 @@ void Server::RunServer()
 
 				if (memcmp(clientAddress, userAddress, sizeof(clientAddress)) == 0)
 				{
-					if (users[i]->currentRoom != nullptr)
+					if (users[i]->currentRoom->GetOtherPlayer(users[i]) == nullptr)
 					{
 						for (int j = 0; j < roomVector.size(); j++)
 						{
@@ -229,12 +232,53 @@ void Server::RunServer()
 					}
 					if (users[i] != nullptr)
 					{
+						users[i]->currentRoom->ResetPlayer(users[i]);
 						delete users[i];
 						vector<User*>::iterator iter = find(users.begin(), users.end(), users[i]);
 						users.erase(iter);
 					}
 				}
 
+			}
+			break;
+		case NEW_GAME:
+			for (int i = 0; i < users.size(); i++)
+			{
+				sockaddr* clientAddress = (sockaddr*)&client;
+				sockaddr* userAddress = (sockaddr*)&users[i]->id;
+
+				if (memcmp(clientAddress, userAddress, sizeof(clientAddress)) == 0)
+				{
+					users[i]->restart = true;
+					Message inLobbyMsg;
+					inLobbyMsg.cmd = MATCH_START;
+					strcpy_s(inLobbyMsg.data, "Esperando a tu rival");
+					sendto(listening, (char*)&inLobbyMsg, sizeof(Message), 0, (sockaddr*)&users[i]->id, sizeof(users[i]->id));
+
+					if (users[i]->currentRoom->GetOtherPlayer(users[i]) && users[i]->currentRoom->GetOtherPlayer(users[i])->restart)
+					{
+						users[i]->currentRoom->SetupPlayers();
+
+						string msg = "Iniciando partida contra ";
+						inLobbyMsg.cmd = MATCH_START;
+						strcpy_s(inLobbyMsg.data, msg.c_str());
+						strcat_s(inLobbyMsg.data, users[i]->currentRoom->GetOtherPlayer(users[i])->alias);
+						sendto(listening, (char*)&inLobbyMsg, sizeof(Message), 0, (sockaddr*)&users[i]->id, sizeof(users[i]->id));
+
+						strcpy_s(inLobbyMsg.data, msg.c_str());
+						strcat_s(inLobbyMsg.data, users[i]->alias);
+						sendto(listening, (char*)&inLobbyMsg, sizeof(Message), 0, (sockaddr*)&users[i]->currentRoom->GetOtherPlayer(users[i])->id, sizeof(users[i]->id));
+
+
+						Message matchStartMsg;
+						matchStartMsg.cmd = OTHERS_TURN;
+						strcpy_s(matchStartMsg.data, " ");
+						sendto(listening, (char*)&matchStartMsg, sizeof(Message), 0, (sockaddr*)&users[i]->currentRoom->GetNextTurnPlayer()->id, sizeof(users[i]->id));
+						matchStartMsg.cmd = MY_TURN;
+						strcpy_s(matchStartMsg.data, " ");
+						sendto(listening, (char*)&matchStartMsg, sizeof(Message), 0, (sockaddr*)&users[i]->currentRoom->GetCurrentTurnPlayer()->id, sizeof(users[i]->id));
+					}
+				}
 			}
 			break;
 		default:

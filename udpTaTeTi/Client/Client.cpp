@@ -5,11 +5,13 @@ using namespace std;
 
 #define NEW_USER '0'
 #define SET_ALIAS '1'
-#define MAKE_MOVE '2'
-#define OTHERS_TURN '3'
-#define MY_TURN '4'
-#define BAD_MOVE '5'
-#define GAME_ENDED '6'
+#define MATCH_START '2'
+#define MAKE_MOVE '3'
+#define OTHERS_TURN '4'
+#define MY_TURN '5'
+#define BAD_MOVE '6'
+#define GAME_ENDED '7'
+#define NEW_GAME '8'
 
 struct Message
 {
@@ -75,7 +77,7 @@ void Client::RunClient()
 
 		RecieveString(out, server);
 		RecieveString(out, server);
-		RecieveString(out, server);
+		//RecieveString(out, server);
 
 		do
 		{
@@ -92,13 +94,26 @@ void Client::RunClient()
 			if(msg.data != " ")
 				cout << msg.data << endl;
 
-			bool skipTurn = false;
+			bool shouldSendData = false;
 			bool gameEnded = false;
 			switch (msg.cmd)
 			{
+			case MATCH_START:
+				/*memset(&msg, 0, sizeof(msg));
+				bytesIn = recvfrom(out, (char*)&msg, sizeof(msg), 0, (sockaddr*)&server, &serverSize);
+
+				if (bytesIn == SOCKET_ERROR)
+				{
+					cerr << "Error al recibir data" << endl;
+					return;
+				}
+				if (msg.data != " ")
+					cout << msg.data << endl;*/
+				shouldSendData = true;
+				break;
 			case OTHERS_TURN:
 				cout << "Turno del Rival" << endl;
-				skipTurn = true;
+				shouldSendData = true;
 				break;
 			case MY_TURN:
 				cout << "Tu Turno" << endl;
@@ -108,15 +123,11 @@ void Client::RunClient()
 				break;
 			case GAME_ENDED:
 				gameEnded = true;
-				memset(&msg, 0, sizeof(msg));
-				strcpy_s(msg.data, " ");
-				msg.cmd = GAME_ENDED;
-				sendto(out, (char*)&msg, sizeof(Message), 0, (sockaddr*)&server, sizeof(server));
 			default:
 				break;
 			}
 
-			if (skipTurn)
+			if (shouldSendData)
 				continue;
 
 			//cout << "echo: " << buf << endl;
@@ -126,16 +137,41 @@ void Client::RunClient()
 			if (!gameEnded)
 			{
 				cout << "Escribe tu jugada: ";
-
+				msg.cmd = MAKE_MOVE;
 				getline(cin, msgtest);
 				strcpy_s(msg.data, msgtest.c_str());
-				msg.cmd = MAKE_MOVE;
-
-				sendto(out, (char*)&msg, sizeof(Message), 0, (sockaddr*)&server, sizeof(server));
 			}
 			else
-				msgtest = "close";
-		} while (msgtest != "close");
+			{
+				bool validInput = false;
+				do
+				{
+					
+					cout << "Escribe 1 para volver a jugar o 2 para salir" << endl;
+
+					getline(cin, msgtest);
+
+					if (msgtest == "1")
+					{
+						strcpy_s(msg.data, msgtest.c_str());
+						msg.cmd = NEW_GAME;
+						validInput = true;
+					}
+					else if (msgtest == "2")
+					{
+						strcpy_s(msg.data, msgtest.c_str());
+						msg.cmd = GAME_ENDED;
+						validInput = true;
+						shouldClose = true;
+					}
+				} while (!validInput);
+				//sendto(out, (char*)&msg, sizeof(Message), 0, (sockaddr*)&server, sizeof(server));
+			}
+
+			sendto(out, (char*)&msg, sizeof(Message), 0, (sockaddr*)&server, sizeof(server));
+
+				//msgtest = "close";
+		} while (!shouldClose);
 
 		// cerrar el socket
 		closesocket(out);

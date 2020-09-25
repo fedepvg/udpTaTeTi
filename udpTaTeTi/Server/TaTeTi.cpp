@@ -10,10 +10,7 @@ TaTeTi::TaTeTi()
 {
 	//int playerInput;
 
-	for (int i = 0; i < 9; i++)
-	{
-		currentGamestate.cellArray[i] = emptyCell;
-	}
+	ResetGrid();
 
 	//while (!gameEnded)
 	//{
@@ -79,6 +76,24 @@ bool TaTeTi::CheckCrosses(Gamestate gamestate)
 			return false;
 }
 
+void TaTeTi::ResetGrid()
+{
+	gameEnded = false;
+	turnsLeft = 9;
+	for (int i = 0; i < 9; i++)
+	{
+		currentGamestate.cellArray[i] = emptyCell;
+	}
+}
+
+void TaTeTi::ResetPlayer(User*& thisPlayer)
+{
+	if (firstPlayer == thisPlayer)
+		firstPlayer = nullptr;
+	else
+		secondPlayer = nullptr;
+}
+
 bool TaTeTi::CheckAll(Gamestate gamestate)
 {
 	return CheckHorizontal(gamestate) || CheckVertical(gamestate) || CheckCrosses(gamestate);
@@ -119,7 +134,7 @@ bool TaTeTi::MakeMove(int cell)
 		User* playerAux = nextTurnPlayer;
 		nextTurnPlayer = currentTurnPlayer;
 		currentTurnPlayer = playerAux;
-		if(CheckAll(currentGamestate))
+		if(CheckAll(currentGamestate) || turnsLeft == 0)
 			gameEnded=true;
 		return true;
 	}
@@ -134,6 +149,7 @@ void TaTeTi::AddPlayer(User* &newPlayer)
 		secondPlayer = newPlayer;
 		secondPlayer->currentRoom = this;
 		SetupPlayers();
+		return;
 	}
 
 	firstPlayer = newPlayer;
@@ -163,6 +179,10 @@ void TaTeTi::SetupPlayers()
 	}
 	firstPlayer->cellType = dot;
 	secondPlayer->cellType = cross;
+
+	firstPlayer->restart = false;
+	secondPlayer->restart = false;
+	ResetGrid();
 }
 
 User* TaTeTi::GetCurrentTurnPlayer()
@@ -173,6 +193,14 @@ User* TaTeTi::GetCurrentTurnPlayer()
 User* TaTeTi::GetNextTurnPlayer()
 {
 	return nextTurnPlayer;
+}
+
+User* TaTeTi::GetOtherPlayer(User*& thisPlayer)
+{
+	if (firstPlayer == thisPlayer)
+		return secondPlayer;
+
+	return firstPlayer;
 }
 
 string TaTeTi::GetCurrentGameBoard()

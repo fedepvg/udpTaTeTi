@@ -8,6 +8,7 @@
 
 class Client 
 {
+	bool shouldClose = false;
 public:
 	void RunClient();
 	void RecieveString(SOCKET &socket, sockaddr_in &server);
