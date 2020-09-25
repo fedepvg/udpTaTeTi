@@ -11,6 +11,11 @@ enum Cell
 	emptyCell, dot, cross, count
 };
 
+enum MatchResult
+{
+	win, draw, stillPlaying
+};
+
 struct Gamestate
 {
 	Cell cellArray[9];
@@ -39,6 +44,7 @@ private:
 	bool gameEnded = false;
 	Gamestate currentGamestate;
 	int turnsLeft = 9;
+	MatchResult matchResult = stillPlaying;
 
 	User* firstPlayer = nullptr;
 	User* secondPlayer = nullptr;
@@ -59,6 +65,7 @@ public:
 	char CellToChar(Cell input);
 	bool MakeMove(int cell);
 	bool GetGameEnded() { return gameEnded; }
+	MatchResult GetMatchResult();
 	void AddPlayer(User* &newPlayer);
 	bool CanRecievePlayer();
 	void SetupPlayers();

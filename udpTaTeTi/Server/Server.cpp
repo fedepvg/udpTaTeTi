@@ -122,6 +122,7 @@ void Server::RunServer()
 							if (roomVector[j]->CanRecievePlayer())
 							{
 								roomVector[j]->AddPlayer(users[i]);
+								roomVector[j]->SetupPlayers();;
 								roomAvailable = true;
 
 								string msg = "Iniciando partida contra ";
@@ -179,25 +180,34 @@ void Server::RunServer()
 							User* nextTurnPlayer = currentRoom->GetCurrentTurnPlayer();
 							Message board;
 							strcpy_s(board.data, currentRoom->GetCurrentGameBoard().c_str());
-							if (currentRoom->GetGameEnded())
+							switch (currentRoom->GetMatchResult())
 							{
+							case win:
 								Message secondBoard = board;
 								strcat_s(board.data, "\n Ganaste");
-
 								board.cmd = GAME_ENDED;
 								sendto(listening, (char*)&board, sizeof(Message), 0, (sockaddr*)&users[i]->id, sizeof(users[i]->id));
 
 								strcat_s(secondBoard.data, "\n Perdiste");
 								secondBoard.cmd = GAME_ENDED;
 								sendto(listening, (char*)&secondBoard, sizeof(Message), 0, (sockaddr*)&nextTurnPlayer->id, sizeof(nextTurnPlayer->id));
+								break;
+							case draw:
+								board.cmd = GAME_ENDED;
+								strcat_s(board.data, "\n Empate");
+								sendto(listening, (char*)&board, sizeof(Message), 0, (sockaddr*)&users[i]->id, sizeof(users[i]->id));
 
+								secondBoard.cmd = GAME_ENDED;
+								sendto(listening, (char*)&board, sizeof(Message), 0, (sockaddr*)&nextTurnPlayer->id, sizeof(nextTurnPlayer->id));
+								break;
+							default:
+								board.cmd = OTHERS_TURN;
+								sendto(listening, (char*)&board, sizeof(Message), 0, (sockaddr*)&users[i]->id, sizeof(users[i]->id));
+
+								board.cmd = MY_TURN;
+								sendto(listening, (char*)&board, sizeof(Message), 0, (sockaddr*)&nextTurnPlayer->id, sizeof(nextTurnPlayer->id));
 								break;
 							}
-							board.cmd = OTHERS_TURN;
-							sendto(listening, (char*)&board, sizeof(Message), 0, (sockaddr*)&users[i]->id, sizeof(users[i]->id));
-
-							board.cmd = MY_TURN;
-							sendto(listening, (char*)&board, sizeof(Message), 0, (sockaddr*)&nextTurnPlayer->id, sizeof(nextTurnPlayer->id));
 							break;
 						}
 					}

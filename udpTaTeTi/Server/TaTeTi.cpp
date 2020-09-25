@@ -79,6 +79,7 @@ bool TaTeTi::CheckCrosses(Gamestate gamestate)
 void TaTeTi::ResetGrid()
 {
 	gameEnded = false;
+	matchResult = stillPlaying;
 	turnsLeft = 9;
 	for (int i = 0; i < 9; i++)
 	{
@@ -134,12 +135,28 @@ bool TaTeTi::MakeMove(int cell)
 		User* playerAux = nextTurnPlayer;
 		nextTurnPlayer = currentTurnPlayer;
 		currentTurnPlayer = playerAux;
-		if(CheckAll(currentGamestate) || turnsLeft == 0)
-			gameEnded=true;
+		//if(CheckAll(currentGamestate) || turnsLeft == 0)
+		//	gameEnded=true;
 		return true;
 	}
 	else
 		return false;
+}
+
+MatchResult TaTeTi::GetMatchResult()
+{
+	if (CheckAll(currentGamestate))
+	{
+		gameEnded = true;
+		return matchResult = win;
+	}
+	if (turnsLeft == 0)
+	{
+		gameEnded = true;
+		return matchResult = draw;
+	}
+
+	return matchResult = stillPlaying;
 }
 
 void TaTeTi::AddPlayer(User* &newPlayer)
@@ -148,7 +165,6 @@ void TaTeTi::AddPlayer(User* &newPlayer)
 	{
 		secondPlayer = newPlayer;
 		secondPlayer->currentRoom = this;
-		SetupPlayers();
 		return;
 	}
 
